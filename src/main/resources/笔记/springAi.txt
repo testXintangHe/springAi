@@ -1,0 +1,20 @@
+Spring Ai 是基于大语言模型LLM (文心一言，通义千问，chatGPT，豆包，Claude等)的框架，用于开发对应的AI应用程序
+是java spring框架，类似java的LangChain4J，python的LangChain
+
+LLM使用到的技术：
+Generative -- 生成式，根据上文预测应该出现的文本或数据，是连续输出的
+              (所以大模型的结果不是一下就出来的，而是逐步出来的)
+Pre-trained -- 预训练，通过大规模数据进行训练，让大模型认识人类的语法
+Transformer -- 一种处理自然语言的神经网络模型
+               比如输入：今天吃啥，他会得到很多字以及对应的概率
+               比如：吃 80%，推 10% 这种，然后选吃
+                    然后就是将 今天吃啥，吃 放入transformer，得到下一个字，从而最后得到结果
+
+大模型应用的方案：
+1.纯Prompt问答 -- 直接调用大模型，基于它本身的推理能力进行问答
+                 Prompt就是调用大模型需要发送的提示词 / 内容
+2.Agent + Function calling -- 大模型进行任务的拆解，然后业务端调用对应的接口实现业务
+3.RAG (Retrieval Augmented Generation) -- 给大模型外挂一个知识库，让大模型基于知识库的内容进行问答
+4.Fine-tuning -- 针对大模型进行微调，来满足特定的需求
+
+阿里云大模型的api-key: sk-26450bac21234edc8c8b9a40c1581d93
