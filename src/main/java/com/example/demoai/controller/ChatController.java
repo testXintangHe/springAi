@@ -10,14 +10,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/ai")
 public class ChatController {
     @Resource
     private ChatClient chatClient;
+
+    private Map<String, String> history = new LinkedHashMap<>();
 
     @RequestMapping(value = "/chat", produces = "text/html;charset=utf-8")
     public Flux<String> chat(String question) {
@@ -44,5 +45,32 @@ public class ChatController {
                 .stream()
                 .content();
         return response1;
+    }
+
+    @RequestMapping(value = "/service", produces = "text/html;charset=utf-8")
+    public Flux<String> service(String prompt) {
+        long curTime = System.currentTimeMillis();
+        history.put("user" + curTime, prompt);
+
+        List<Message> messages = new ArrayList<>();
+        for (Map.Entry<String, String> entry : history.entrySet()) {
+            if (entry.getKey().startsWith("user")) {
+                messages.add(new UserMessage(entry.getValue()));
+            } else {
+                messages.add(new AssistantMessage(entry.getValue()));
+            }
+        }
+        Prompt realPrompt = new Prompt(messages);
+
+        Flux<String> response = chatClient.prompt(realPrompt)
+                .stream()
+                .content();
+
+        // 获取流式响应，且在流结束的时候将结果拼接，然后存入history，这样既可以存储结果，也不阻塞响应
+        StringBuilder fullAnswer = new StringBuilder();
+        return response.doOnNext(chunk -> fullAnswer.append(chunk))
+                .doOnComplete(() -> {
+                    history.put("assistant" + curTime, fullAnswer.toString());
+                });
     }
 }

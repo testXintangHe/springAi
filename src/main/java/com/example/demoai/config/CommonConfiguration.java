@@ -1,5 +1,7 @@
 package com.example.demoai.config;
 
+import com.example.demoai.constants.SystemConstants;
+import com.example.demoai.tool.CourseTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -9,10 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CommonConfiguration {
     @Bean
-    public ChatClient chatClient(OpenAiChatModel model) {
+    public ChatClient chatClient(OpenAiChatModel model, CourseTools courseTools) {
         return ChatClient.builder(model)
-                .defaultSystem("你是一个专属于何心瑭的智能助手，名字叫小狗，请以小狗的身份和语气进行回答。")
+                .defaultSystem(SystemConstants.SERVICE_SYSTEM_PROMPT)
                 .defaultAdvisors(new SimpleLoggerAdvisor())
+                .defaultTools(courseTools)
                 .build();
     }
 }

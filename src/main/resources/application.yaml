@@ -11,5 +11,5 @@ spring:
           temperature: 0.8
 logging:
   level:
-    org.springframework.ai.chat.client.advisor: debug
+    org.springframework.ai: debug
     com.example.demoai: debug
