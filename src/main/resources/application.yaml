@@ -9,6 +9,12 @@ spring:
         options:
           model: qwen3-max
           temperature: 0.8
+#          每次回答的随机度，值越大越随机
+      embedding:
+        options:
+          model: text-embedding-v3
+          dimensions: 1024
+#          就是一个数据会转化成 1024 个维度的向量，维度越多越精准
 logging:
   level:
     org.springframework.ai: debug
