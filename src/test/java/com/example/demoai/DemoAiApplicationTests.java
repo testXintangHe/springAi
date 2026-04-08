@@ -2,9 +2,19 @@ package com.example.demoai;
 
 import com.example.demoai.tool.VectorDistanceUtil;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.reader.ExtractedTextFormatter;
+import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
+import org.springframework.ai.reader.pdf.config.PdfDocumentReaderConfig;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +25,12 @@ class DemoAiApplicationTests {
     @Autowired
     private OpenAiEmbeddingModel embeddingModel;
 
+    @Autowired
+    private VectorStore vectorStore;
+
+    /**
+     * 向量模型测试
+     */
     @Test
     void contextLoads() {
         // 1.测试数据
@@ -54,4 +70,40 @@ class DemoAiApplicationTests {
         }
     }
 
+    /**
+     * 向量数据库测试
+     */
+    @Test
+    public void testVectorStore(){
+        Resource resource = new ClassPathResource("笔记/springAi.txt");
+        // 1.创建PDF的读取器
+//        PagePdfDocumentReader reader = new PagePdfDocumentReader(
+//                resource, // 文件源
+//                PdfDocumentReaderConfig.builder()
+//                        .withPageExtractedTextFormatter(ExtractedTextFormatter.defaults())
+//                        .withPagesPerDocument(1) // 每1页PDF作为一个Document
+//                        .build()
+//        );
+        TextReader reader = new TextReader(resource);
+        // 2.读取PDF文档，拆分为Document
+        List<Document> documents = reader.read();
+        // 3.写入向量库
+        vectorStore.add(documents);
+        // 4.搜索
+        SearchRequest request = SearchRequest.builder()
+                .query("springAi是啥")
+                .topK(1)
+                .similarityThreshold(0.6)
+                .build();
+        List<Document> docs = vectorStore.similaritySearch(request);
+        if (docs == null) {
+            System.out.println("没有搜索到任何内容");
+            return;
+        }
+        for (Document doc : docs) {
+            System.out.println(doc.getId());
+            System.out.println(doc.getScore());
+            System.out.println(doc.getText());
+        }
+    }
 }

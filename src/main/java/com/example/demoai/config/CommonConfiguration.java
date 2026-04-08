@@ -7,12 +7,15 @@ import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.autoconfigure.openai.OpenAiChatProperties;
 import org.springframework.ai.autoconfigure.openai.OpenAiConnectionProperties;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.observation.ChatModelObservationConvention;
 import org.springframework.ai.model.SimpleApiKey;
 import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,6 +32,10 @@ import java.util.*;
 
 @Configuration
 public class CommonConfiguration {
+    /**
+     * 将阿里巴巴模型引入，因为想要使用 Function Calling + 流式响应，就需要使用阿里巴巴模型，因为openAi的模型没有兼容好
+     * 然后再将Function Calling的接口类传递给chatClient，从而问大模型的时候，springAi会自动帮忙调用
+     */
     @Bean
     public ChatClient chatClient(AlibabaOpenAiChatModel model, CourseTools courseTools) {
         return ChatClient.builder(model)
@@ -38,6 +45,30 @@ public class CommonConfiguration {
                 .build();
     }
 
+    /**
+     * 想要使用向量数据库，那么也可以交给springAi完成，直接将数据库交给advisor就行
+     */
+    @Bean
+    public ChatClient pdfChatClient(OpenAiChatModel model, VectorStore vectorStore) {
+        return ChatClient
+                .builder(model)
+                .defaultSystem("请根据上下文回答问题，遇到上下文没有的问题，不要随意编造。")
+                .defaultAdvisors(
+                        new SimpleLoggerAdvisor(),
+                        new QuestionAnswerAdvisor(
+                                vectorStore,
+                                SearchRequest.builder()
+                                        .similarityThreshold(0.1) // 相似度阈值
+                                        .topK(1) // 返回知识片段数量
+                                        .build()
+                        )
+                )
+                .build();
+    }
+
+    /**
+     * 使用SimpleVectorStore注入成VectorStore
+     */
     @Bean
     public VectorStore vectorStore(OpenAiEmbeddingModel embeddingModel) {
         return SimpleVectorStore.builder(embeddingModel).build();

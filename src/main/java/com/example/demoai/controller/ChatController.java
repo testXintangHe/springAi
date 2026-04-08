@@ -6,17 +6,33 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.ExtractedTextFormatter;
+import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
+import org.springframework.ai.reader.pdf.config.PdfDocumentReaderConfig;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 import java.util.*;
 
+import static org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor.FILTER_EXPRESSION;
+
 @RestController
 @RequestMapping("/ai")
 public class ChatController {
-    @Resource
+    @Resource(name = "chatClient")
     private ChatClient chatClient;
+
+    @Resource(name = "pdfChatClient")
+    private ChatClient pdfChatClient;
+
+    @Autowired
+    private VectorStore vectorStore;
 
     private Map<String, String> history = new LinkedHashMap<>();
 
@@ -72,5 +88,35 @@ public class ChatController {
                 .doOnComplete(() -> {
                     history.put("assistant" + curTime, fullAnswer.toString());
                 });
+    }
+
+    @RequestMapping(value = "/pdfChat", produces = "text/html;charset=utf-8")
+    public Flux<String> pdfChat(String prompt) {
+        // 写入向量库
+        org.springframework.core.io.Resource resource = new ClassPathResource("笔记/Spring Ai.pdf");
+        this.writeToVectorStore(resource);
+
+        // 获取结果
+        return pdfChatClient.prompt()
+                .user(prompt)
+                .advisors(a -> a.param(FILTER_EXPRESSION, "file_name == '" + "Spring Ai.pdf" + "'")) // 可能会有很多文档，然后这个只对 springAi.txt 进行向量检索
+                .stream()
+                .content();
+    }
+
+    private void writeToVectorStore(org.springframework.core.io.Resource resource) {
+        // 1.创建读取器
+        PagePdfDocumentReader reader = new PagePdfDocumentReader(
+                resource, // 文件源
+                PdfDocumentReaderConfig.builder()
+                        .withPageExtractedTextFormatter(ExtractedTextFormatter.defaults())
+                        .withPagesPerDocument(1) // 每1页PDF作为一个Document
+                        .build()
+        );
+        // 2.读取文档，拆分为Document
+        List<Document> documents = reader.read();
+        // 3.写入向量库
+        vectorStore.delete(List.of("*")); // 这是防止重复写入，因为我为了省事，直接给接口里面加了写入代码，所以每次调用都写入
+        vectorStore.add(documents);
     }
 }
