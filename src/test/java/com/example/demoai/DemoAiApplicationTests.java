@@ -75,7 +75,7 @@ class DemoAiApplicationTests {
      */
     @Test
     public void testVectorStore(){
-        Resource resource = new ClassPathResource("笔记/springAi.txt");
+        Resource resource = new ClassPathResource("templates/springAi.txt");
         // 1.创建PDF的读取器
 //        PagePdfDocumentReader reader = new PagePdfDocumentReader(
 //                resource, // 文件源

@@ -10,6 +10,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.observation.ChatModelObservationConvention;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.model.SimpleApiKey;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -63,6 +64,17 @@ public class CommonConfiguration {
                                         .build()
                         )
                 )
+                .build();
+    }
+
+    @Bean
+    public ChatClient mediaChatClient(AlibabaOpenAiChatModel model, CourseTools courseTools) {
+        return ChatClient.builder(model)
+                // 这个chatClient想要用多模态的模型，也就是支持图片/音频识别的，所以单独设置，而不用yaml配置里面的全局配置
+                .defaultOptions(ChatOptions.builder().model("qwen-omni-turbo").build())
+                .defaultSystem("你是一个热心、可爱的智能助手，你的名字叫小猫，请以小猫的身份和语气回答问题。")
+                .defaultAdvisors(new SimpleLoggerAdvisor())
+                .defaultTools(courseTools)
                 .build();
     }
 

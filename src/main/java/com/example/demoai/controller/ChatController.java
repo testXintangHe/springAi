@@ -7,13 +7,14 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.model.Media;
 import org.springframework.ai.reader.ExtractedTextFormatter;
-import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.reader.pdf.config.PdfDocumentReaderConfig;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.MimeType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
@@ -30,6 +31,9 @@ public class ChatController {
 
     @Resource(name = "pdfChatClient")
     private ChatClient pdfChatClient;
+
+    @Resource(name = "mediaChatClient")
+    private ChatClient mediaChatClient;
 
     @Autowired
     private VectorStore vectorStore;
@@ -93,7 +97,7 @@ public class ChatController {
     @RequestMapping(value = "/pdfChat", produces = "text/html;charset=utf-8")
     public Flux<String> pdfChat(String prompt) {
         // 写入向量库
-        org.springframework.core.io.Resource resource = new ClassPathResource("笔记/Spring Ai.pdf");
+        org.springframework.core.io.Resource resource = new ClassPathResource("templates/Spring Ai.pdf");
         this.writeToVectorStore(resource);
 
         // 获取结果
@@ -118,5 +122,22 @@ public class ChatController {
         // 3.写入向量库
         vectorStore.delete(List.of("*")); // 这是防止重复写入，因为我为了省事，直接给接口里面加了写入代码，所以每次调用都写入
         vectorStore.add(documents);
+    }
+
+    @RequestMapping(value = "/media", produces = "text/html;charset=utf-8")
+    public Flux<String> media(String prompt) {
+        org.springframework.core.io.Resource resource = new ClassPathResource("templates/test.mp3");
+        Media media = new Media(MimeType.valueOf("audio/mp3"), resource);
+
+        List<Message> messages = new ArrayList<>();
+        messages.add(new UserMessage(prompt, media));
+
+        Prompt realPrompt = new Prompt(messages);
+
+        Flux<String> response = mediaChatClient.prompt(realPrompt)
+                .stream()
+                .content();
+
+       return response;
     }
 }
