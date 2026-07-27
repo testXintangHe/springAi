@@ -3,6 +3,7 @@ package com.example.demoai.config;
 import com.example.demoai.constants.SystemConstants;
 import com.example.demoai.model.AlibabaOpenAiChatModel;
 import com.example.demoai.tool.CourseTools;
+import com.example.demoai.tool.ReadFileTool;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.autoconfigure.openai.OpenAiChatProperties;
 import org.springframework.ai.autoconfigure.openai.OpenAiConnectionProperties;
@@ -107,5 +108,14 @@ public class CommonConfiguration {
         Objects.requireNonNull(chatModel);
         observationConvention.ifAvailable(chatModel::setObservationConvention);
         return chatModel;
+    }
+
+    @Bean
+    public ChatClient analyzeClient(AlibabaOpenAiChatModel model, ReadFileTool readFileTool) {
+        return ChatClient.builder(model)
+                .defaultSystem(SystemConstants.ANALYZE_SYSTEM_PROMPT)
+                .defaultAdvisors(new SimpleLoggerAdvisor())
+                .defaultTools(readFileTool)
+                .build();
     }
 }

@@ -35,6 +35,9 @@ public class ChatController {
     @Resource(name = "mediaChatClient")
     private ChatClient mediaChatClient;
 
+    @Resource(name = "analyzeClient")
+    private ChatClient analyzeClient;
+
     @Autowired
     private VectorStore vectorStore;
 
@@ -139,5 +142,19 @@ public class ChatController {
                 .content();
 
        return response;
+    }
+
+    @RequestMapping(value = "/analyze", produces = "text/html;charset=utf-8")
+    public Flux<String> analyze(String question) {
+        List<Message> messages = new ArrayList<>();
+        messages.add(new UserMessage(question));
+
+        Prompt prompt = new Prompt(messages);
+
+        // stream方法会实时同步大模型的结果，也就是以流的形式逐字返回
+        Flux<String> response1 = analyzeClient.prompt(prompt)
+                .stream()
+                .content();
+        return response1;
     }
 }
